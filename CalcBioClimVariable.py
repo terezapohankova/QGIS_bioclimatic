@@ -228,6 +228,15 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         processing.run('native:zonalstatisticsfb', alg_params, is_child_algorithm=True)
         return
     
+    # Run zonalStatistcs for images in folder
+    def RunZonalStatOnTif(self, input_folder, output_suffix):
+        for root, dirs, files in os.walk(input_folder):
+            for file in files:
+                if file.endswith('.TIF'):
+                    self.zonalStatistics(self.parameters['STAT_ZONES'], os.path.join(input_folder, file), file.split('_')[3] + output_suffix)
+        return
+
+
     def processAlgorithm(self, parameters, context, feedback):
         self.parameters = parameters
         self.context = context
@@ -278,7 +287,7 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
                 if item[0] == self.sensing_date:
                     air_temp = float(item[1])
             
-            self.read_temp = self.readCSV(self.parameters['AIR_TEMP'])
+            #self.read_temp = self.readCSV(self.parameters['AIR_TEMP'])
             self.calcRadLongIn = self.radLong(0.8, air_temp) #emis_atm, Ta_C
             
                        
@@ -385,31 +394,15 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
             except:
                 self.feedback.pushInfo(str('[FAIL] Ground Heat Flux was generated'))
 
-                
+
         if self.parameters['calc_zonal_stat']:
-            for root, dirs, files in os.walk(self.Albedo_folder):
-                for file in files:
-                    if file.endswith('.TIF'):
-                        self.zonalStatistics(self.parameters['STAT_ZONES'], os.path.join(self.Albedo_folder, file), file.split('_')[3] + '_Albedo')
-        
-        
-            for root, dirs, files in os.walk(self.NDVI_folder):
-                for file in files:
-                    if file.endswith('.TIF'):
-                        self.zonalStatistics(self.parameters['STAT_ZONES'], os.path.join(self.NDVI_folder, file), file.split('_')[3] + '_NDVI')
-            
-        
-            for root, dirs, files in os.walk(self.LST_folder):
-                for file in files:
-                    if file.endswith('.TIF'):
-                        self.zonalStatistics(self.parameters['STAT_ZONES'], os.path.join(self.LST_folder, file), file.split('_')[3] + '_LST')
-                        
-        
-            for root, dirs, files in os.walk(self.G_folder):
-                for file in files:
-                    if file.endswith('.TIF'):
-                        self.zonalStatistics(self.parameters['STAT_ZONES'], os.path.join(self.G_folder, file), file.split('_')[3] + '_GroundHeatFlux_')    
+            self.RunZonalStatOnTif(self.Albedo_folder, '_Albedo')
+            self.RunZonalStatOnTif(self.NDVI_folder, '_NDVI')
+            self.RunZonalStatOnTif(self.LST_folder, '_LST')
+            self.RunZonalStatOnTif(self.G_folder, '_GroundHeatFlux')
             self.feedback.pushInfo(str('[SUCCESS] ZONAL STATISTICS WAS CALCULATED'))
-        else:
-            self.feedback.pushInfo(str('[SUCCESS]'))
+        
+        
+        self.feedback.pushInfo(str('[SUCCESS]'))
+        
         return {}
